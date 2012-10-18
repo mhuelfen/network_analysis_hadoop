@@ -16,6 +16,12 @@
   </properties>
 
   <dependencies>
+  
+  	<dependency>
+		<groupId>org.apache.pig</groupId>
+		<artifactId>pig</artifactId>
+		<version>0.10.0</version>
+ 	</dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
