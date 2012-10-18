@@ -11,7 +11,7 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.ToolRunner;
 
-import eu.robust.wp2.SimpleMapReduceChain;
+import eu.robust.wp2.networkanalysis.SimpleMapReduceChain;
 
 import java.io.IOException;
 import java.util.Map;
