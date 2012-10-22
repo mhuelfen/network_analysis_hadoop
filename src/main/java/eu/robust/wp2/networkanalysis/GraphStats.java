@@ -46,8 +46,8 @@ public class GraphStats {
 	 */
 	public static void main(String[] args) {
 		HashMap<String, String> params = new HashMap<String, String>();
-		params.put("user", "data/uupart.csv");
-		params.put("entity", "data/uupart.csv");
+//		params.put("entity", "data/USER_ENTITY_2008.csv");
+		params.put("entity", "data/ue_test_data.csv");
 		GraphStats statcalculator = new GraphStats();
 		statcalculator.calcStatsWeekwise(params);
 
