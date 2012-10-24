@@ -31,7 +31,7 @@ public class GraphStats {
 			params.put("maxtime", Long.toString(maxTime));
 			// call pig script
 			try {
-				System.out.println(params);
+			System.out.println(params);
 				pigServer.registerScript("pig/stats.pig", params);
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -46,8 +46,8 @@ public class GraphStats {
 	 */
 	public static void main(String[] args) {
 		HashMap<String, String> params = new HashMap<String, String>();
-//		params.put("entity", "data/USER_ENTITY_2008.csv");
-		params.put("entity", "data/ue_test_data.csv");
+		params.put("entity", "data/USER_ENTITY_2008.csv");
+//		params.put("entity", "data/ue_test_data.csv");
 		GraphStats statcalculator = new GraphStats();
 		statcalculator.calcStatsWeekwise(params);
 

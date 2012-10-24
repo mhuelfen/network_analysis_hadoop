@@ -63,8 +63,7 @@ comReplies = foreach comReplies generate $0..$4 as (timeCreate,timeReply,creator
 -------
 -- calculate in and out degree
 -------
---comReplies = FOREACH comReplies GENERATE $0 as time ,$1 as poster:chararray,$2 as replier:chararray,$3 as threadId,$6 as commuId:chararray;
---
+
 -- make replies unique
 uniReplies = DISTINCT (FOREACH comReplies GENERATE community,creator,replier);
 
@@ -82,8 +81,8 @@ out = FOREACH out GENERATE FLATTEN(group) as (community,replier) , COUNT(uniRepl
 --dump out;
 --describe out;
 
---STORE in into './results/in$maxtime';
---STORE out into './results/out$maxtime';
+STORE in into './results/in$maxtime';
+STORE out into './results/out$maxtime';
 
 
 --------------
@@ -95,6 +94,7 @@ replyTimes = foreach comReplies generate timeReply - timeCreate as deltaTime, cr
 repro = GROUP replyTimes BY (community,creator);
 repro = FOREACH repro GENERATE FLATTEN(group) as (community,replier) , SUM(replyTimes.deltaTime) / COUNT(replyTimes) as timeSum;
 
+STORE repro into './results/repro$maxtime';
 --describe repro;
 --dump repro;
 
@@ -104,13 +104,41 @@ repro = FOREACH repro GENERATE FLATTEN(group) as (community,replier) , SUM(reply
 --------------
 -- join creations with community
 comCreates = JOIN creations BY thread, coms BY thread;
-comCreates = foreach comCreates generate coms::thread as community, creations::creator as creator,coms::thread as thread;
-popu = JOIN comCreates by thread LEFT OUTER , replies by thread;
-popu = foreach popu generate $0..$3 as (community,creator,thread,replyTime);
+comCreates = foreach comCreates generate coms::community as community, creations::creator as creator,coms::thread as thread;
 
-popu = GROUP popu BY (community,creator);
+ -- get a tuple for each replied thread
+wasReplied= DISTINCT (FOREACH comReplies GENERATE community,creator,thread);
 
-popu = foreach popu generate group, SUM(replyTime);-- is null  ? 0 : 1
---
-dump popu;
+-- group by comm. and user to count number of replied thread
+numReplied = GROUP wasReplied by (community,creator);
+numReplied = FOREACH numReplied GENERATE FLATTEN(group) as (community,creator), COUNT(wasReplied) as sumReplied;
+
+-- get number of created thread per comm. and user
+numCreated = GROUP comCreates by (community,creator);
+numCreated = FOREACH numCreated GENERATE FLATTEN(group) as (community,creator),COUNT(comCreates)*1.0 as sumCreated:double; 
+
+-- join numbers of replied and creates thread to calculate replied/created = popularity
+popu = JOIN numReplied by (community,creator) RIGHT OUTER, numCreated by (community,creator);
+popu = FOREACH popu GENERATE $3..$4 as (community,creator), (numReplied::sumReplied is null ? 0 : numReplied::sumReplied /  numCreated::sumCreated) as popul;
+
+STORE popu into './results/popu$maxtime';
+
+--dump popu;
 describe popu;
+
+--popu = JOIN comCreates by thread LEFT OUTER , replies by thread;
+--describe popu;
+--popu = foreach popu generate $0..$3 as (community,creator,thread),replies::replier as replier;
+----
+----
+--popu = GROUP popu BY (community,creator);
+--dump popu;
+--describe popu;
+--count =  foreach popu generate group,COUNT(popu);
+--dump count;
+--describe count;
+
+
+
+--popu = foreach popu generate group, SUM(replyTime);-- is null  ? 0 : 1
+--
