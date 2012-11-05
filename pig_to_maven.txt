@@ -1,0 +1,37 @@
+mvn install:install-file -Dfile=../../packages/pig-0.10.0/pig-0.10.0.jar -DgroupId=apache -DartifactId=pig -Dversion=0.10.0 -Dpackaging=jar -DlocalRepositoryPath=lib -DcreateChecksum=true
+-----
+!!! -> installs jar in ./lib from where cmd is called
+-----
+!! nor error if path to .jar was wrong , check folder manually
+
+[INFO] ------------------------------------------------------------------------
+[INFO] Building network-analysis 1.0
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- maven-install-plugin:2.3:install-file (default-cli) @ network-analysis ---
+[INFO] Installing /home/mhuelfen/Documents/packages/pig-0.10.0/pig-0.10.0.jar to /home/mhuelfen/Documents/code/network_analysis_hadoop/lib/apache/pig/0.10.0/pig-0.10.0.jar
+[INFO] Installing /tmp/mvninstall7968309321103801388.pom to /home/mhuelfen/Documents/code/network_analysis_hadoop/lib/apache/pig/0.10.0/pig-0.10.0.pom
+
+groupId = dropbox
+artifactId = dropbox-sdk
+version = 1.3.1
+the library file = dropbox-sdk-1.3.1.jar
+
+Next open your pom.xml and add the following block under repositories
+1	<!-- In Project repository -->
+2	<repository>
+3	    <id>in-project</id>
+4	    <name>In Project Repo</name>
+5	    <url>file://${project.basedir}/libs</url>
+6	</repository>
+
+This will point to you in project repository. The name field can be anything.
+
+Now in the pom.xml you can add dropbox dependency as following
+1	<dependency>
+2	    <groupId>dropbox</groupId>
+3	    <artifactId>dropbox-sdk</artifactId>
+4	    <version>1.3.1</version>
+5	</dependency>
+
+Notice the groupId, artificatId and verion follows the pattern described above.
