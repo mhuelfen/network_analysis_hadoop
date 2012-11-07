@@ -6,4 +6,33 @@ user_entity = filter user_entity by  timestamp <'$maxtime' and nodeId1 != 'null'
 communities = filter user_entity by rel == 'JOINED' and nodeType1 == 'USER'  and nodeType2 == 'COMMUNITY';
 
 describe communities;
--- group by
+
+
+-- (join with communities)
+
+-- group by node1
+degrees = group communities by nodeId1;
+
+
+-- sum in group to get node degree
+degrees = foreach degrees generate flatten(group) as nodetype, COUNT(communities) as degree;
+
+--dump degrees;
+describe degrees;
+  
+---- group by degree
+dist = group degrees by degree;
+dist = foreach dist generate group as degreename, COUNT(degrees);
+--
+dump dist;
+describe dist;
+---- count to get degree count 
+--
+---- (calc degree prob n_k / n)
+--
+---- order to get degree dist
+--
+--
+--
+--
+--

@@ -1,14 +1,15 @@
 -- load custom data loader
---REGISTER ./src/main/resources/udf/ibmloader.jar;
+REGISTER ../udf/ibmloader.jar;
 
 
 -- parameters:
+-- data file:
 -- maxtime :  maximum timestamp of log entries used for the calculation of the statistics
 
 
 ----- load data
---user_entity = LOAD '$entity' USING eu.robust.wp2.networkanalysis.IbmDataLoader(';') AS (timestamp,nodeType1:chararray,nodeId1:chararray,rel:chararray,nodeType2:chararray,nodeId2:chararray,json:map[]);
-
+user_entity = LOAD '$entity' USING eu.robust.wp2.networkanalysis.IbmDataLoader(';') AS (timestamp,nodeType1:chararray,nodeId1:chararray,rel:chararray,nodeType2:chararray,nodeId2:chararray,json:map[]);
+--user_entity = LOAD '$datafile'  USING eu.robust.wp2.networkanalysis.IbmDataLoader(';') AS (timestamp,nodeType1:chararray,nodeId1:chararray,rel:chararray,nodeType2:chararray,nodeId2:chararray,json:map[]);
 
 -- ?also filter for set of rel here?
 -- filter by timestamp and check for null Ids
