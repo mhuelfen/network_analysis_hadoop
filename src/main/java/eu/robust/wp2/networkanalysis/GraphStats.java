@@ -31,17 +31,28 @@ public class GraphStats {
         for (long maxTime = END_TIME - WEEK; maxTime > START_TIME; maxTime -= WEEK) {
             System.out.println(maxTime + " " + START_TIME);
             params.put("maxtime", Long.toString(maxTime));
+//           params.put("entity","data/ue_test_data.csv");
+            params.put("entity","data/USER_ENTITY_2008.csv");
+            params.put("nodetype", "FORUM_THREAD");
+            params.put("reltype", "REPLIED");
+            
             // call pig script
             try {
-//                String statsPigScript = this.getClass().getClassLoader()
-//                        .getResource("pig/stats.pig").getPath();
-                String statsPigScript = "pig/stats.pig";
-                String giniPigScript = this.getClass().getClassLoader()
-                        .getResource("pig/gini_coef.pig").getPath();
+                // String statsPigScript = this.getClass().getClassLoader()
+                // .getResource("pig/stats.pig").getPath();
+                // String statsPigScript = "pig/stats.pig";
+//                String giniPigScript = this.getClass().getClassLoader()
+//                        .getResource("pig/gini_coef.pig").getPath();
 
-                // pigServer.registerScript(statsPigScript, params);
-                pigServer.registerScript(giniPigScript, params);
+//                String comDistPigScript = this.getClass().getClassLoader()
+//                        .getResource("pig/com_degree_dist.pig").getPath();
+                String userEntroPigScript = this.getClass().getClassLoader()
+                        .getResource("pig/user_com_entropy.pig").getPath();
 
+                // pigServer.registerSccript(statsPigScript, params);
+//                pigServer.registerScript(giniPigScript, params);
+                //pigServer.registerScript(comDistPigScript, params);
+                pigServer.registerScript(userEntroPigScript, params);
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -68,7 +79,7 @@ public class GraphStats {
     public static void main(String[] args) throws IOException {
         HashMap<String, String> params = new HashMap<String, String>();
         GraphStats statcalculator = new GraphStats();
-        statcalculator.load_data("data/USER_ENTITY_2008.csv");
+        //statcalculator.load_data("data/USER_ENTITY_2008.csv");
         // statcalculator.load_data("data/USER_ENTITY.csv");
         // statcalculator.load_data("hdfs:///mhuelfen/USER_ENTITY.csv");
 

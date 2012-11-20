@@ -7,7 +7,12 @@ Created on Nov 12, 2012
 import csv
 import fnmatch
 import os
+import sys
 
+from getopt import getopt, GetoptError
+import operator
+
+help_message = 'python gini_coef.py <degreedist_folder> <result_folder>'
 
 def gini_coef(dist):
     '''
@@ -26,69 +31,131 @@ def gini_coef(dist):
     
     return gini
 
-def store_results(week,results,path,metric_name,nodetype):
-    with open(path, 'ab') as csvfile:
-        result_writer = csv.writer(csvfile, delimiter='\t')
-        print results
-        for community, value in results:
-            result_writer.writerow([week,metric_name,community,nodetype,value])
+#def store_results(week, results, path, metric_name, nodetype):
+#    with open(path, 'ab') as csvfile:
+#        result_writer = csv.writer(csvfile, delimiter='\t')
+#        print results
+#        for community, value in results:
+#            result_writer.writerow([week, metric_name, community, nodetype, value])
         
 
-def calc_gini_from_dist_files(folder):
+def calc_gini_from_dist_files(folder, result_folder):
     '''
     Calculate the gini coefficients for all file with distributions in a folder 
     param folder:
     '''
-    result_path = "../results/gini/gini.tsv"
+    # result_path = "../results/gini/gini.tsv"
+    result_path = result_folder + "/gini.tsv"
     # remove old result file
-    os.remove(result_path)
+    try:
+        os.remove(result_path)
+    except:
+        pass
     
     # find files recursively
     matches = []
-    for root, dirnames, filenames in os.walk('../results/degreedist'):
+    # for root, dirnames, filenames in os.walk('../results/degreedist'):
+    for root, dirnames, filenames in os.walk(folder):
         for filename in fnmatch.filter(filenames, 'part*'):
-            matches.append(os.path.join(root, filename))          
+            matches.append(os.path.join(root, filename))
+    week_files = {}
     
-    for path in matches:
-        week,results,nodetype = calc_gini_from_dist_file(path)
-        # write results to tsv file
-        store_results(week,results,result_path,'gini',nodetype)
+    for match in matches:
+        dir = '/'.join(match.split('/')[:-1])
+        part_file = match.split('/')[-1]
+        if dir in week_files:
+            week_files[dir].append(part_file)
+        else:
+            week_files[dir] = [part_file,]
+     
+    degree_dists = []
+    # read file to get degree distribution for a week    
     
-def calc_gini_from_dist_file(path):
+    for dir in week_files.keys():
+        degreedist = []
+        
+        # collect data of all part file for the same week
+        for part in week_files[dir]:
+            degree_dist_file = csv.reader(open(dir + '/' + part), delimiter='\t')
+            for line in degree_dist_file:
+                # list of community and degreecount
+                degreedist.append([line[1],int(line[3])])
+            
+        # sort to get degree distribution sort by community and degree
+        degreedist = sorted(degreedist, key=operator.itemgetter(0,1))
+        # parse dir name for nodetype and week
+        nodetype = dir.split('-')[1] + '-' + dir.split('-')[2]
+        week = dir.split('-')[-1]
+        # add if degree_dist non empty
+        if degreedist !=[]:
+            degree_dists.append([degreedist,week,nodetype])
+        else:
+            print 'empty',week, nodetype
+    
+    all_results = []
+    for degreedist,week,nodetype in degree_dists:
+        results = calc_gini_from_dist_file(degreedist)
+        # create result list to do sorting
+        all_results.extend([(week, 'gini', community, nodetype, value) for community, value in results])
+        
+    # sort results by week
+    all_results = sorted(all_results, key=operator.itemgetter(3,0))
+    # write results to tsv file    
+    with open(result_path, 'wb') as csvfile:
+        result_writer = csv.writer(csvfile, delimiter='\t')
+        for result in all_results:
+            result_writer.writerow(result)
+    
+#        for community, value in results:
+#            result_writer.writerow([week, metric_name, community, nodetype, value])
+    
+    
+def calc_gini_from_dist_file(degreedist):
     '''
     Calculate the gini coefficients for all distributions in a file 
-    @param path: path to file with distribution
-    @type: C{Str}
+    @param degreedist: list representing the degree distribution items [community,degree count]
+    @type: C{List of List[str,int]}
     '''
-    degree_dist_file = csv.reader(open(path), delimiter='\t')
+    #degree_dist_file = csv.reader(open(path), delimiter='\t')
     
     # values of the degree dist
     values = []
         
     gini_results = []
-    # read first entry from file
-    line = degree_dist_file.next()
-    week = line[0]
-    last_comm = line[1]
-    values.append(int(line[3]))
-    for line in degree_dist_file:
-            if line[1] != last_comm:
+        
+    # use first entry
+    last_comm = degreedist[0][0]
+    values.append(degreedist[0][1])
+    for community,degreecount in degreedist[1:]:
+            if community != last_comm:
                 # new community found 
                 # calc gini
-                gini_results.append((last_comm,gini_coef(values)))
+                gini_results.append((last_comm, gini_coef(values)))
                 # reset values
-                last_comm = line[1]
+                last_comm = community
                 values = []
     
-            # collect values of the degree dist
-            values.append(int(line[3]))
-    # calc gini for last
-    gini_results.append((last_comm,gini_coef(values)))
+            # collect values of the degree dist for this community
+            values.append(degreecount)
             
-            
-    print path.split('-')
-    # get node types  from file name
-    nodetype = path.split('-')[1] + '-' + path.split('-')[2]
-    return week,gini_results,nodetype
+    
+    # calc gini with gini_coef for last community
+    gini_results.append((last_comm, gini_coef(values)))
+    
+    return gini_results
 
-calc_gini_from_dist_files("")
+if __name__ == "__main__":
+    try:
+        options, args = getopt(sys.argv[1:], "")
+    except GetoptError:
+        print >> sys.stderr, help_message
+        sys.exit(2)
+        
+    if len(args) != 2:
+        print >> sys.stderr, help_message
+        sys.exit(2)
+
+    source_folder = args[0]
+    result_folder = args[1]    
+
+    calc_gini_from_dist_files(source_folder, result_folder)

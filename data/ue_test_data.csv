@@ -16,4 +16,4 @@
 1243864123012;USER;2;REPLIED;FORUM_THREAD;thread-2;{"timestamp":1243864123000,"reply_id":"reply-2"}
 1243864123012;USER;2;REPLIED;FORUM_THREAD;thread-3;{"timestamp":1243864123000,"reply_id":"reply-3"}
 1243864123012;USER;2;REPLIED;FORUM_THREAD;thread-3;{"timestamp":1243864123000,"reply_id":"reply-3"}
-1243864123020;USER;2;REPLIED;FORUM_THREAD;thread-4;{"timestamp":1243864123000,"reply_id":"reply-3"}
+1243864123020;USER;1;REPLIED;FORUM_THREAD;thread-4;{"timestamp":1243864123000,"reply_id":"reply-3"}

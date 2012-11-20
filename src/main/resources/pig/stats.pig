@@ -1,13 +1,14 @@
 -- load custom data loader
---REGISTER ./src/main/resources/udf/ibmloader.jar;
+REGISTER ./src/main/resources/udf/ibmloader.jar;
 
 
 -- parameters:
+-- entity : User_entity file
 -- maxtime :  maximum timestamp of log entries used for the calculation of the statistics
 
 
------ load data
---user_entity = LOAD '$entity' USING eu.robust.wp2.networkanalysis.IbmDataLoader(';') AS (timestamp,nodeType1:chararray,nodeId1:chararray,rel:chararray,nodeType2:chararray,nodeId2:chararray,json:map[]);
+-- load data
+user_entity = LOAD '$entity' USING eu.robust.wp2.networkanalysis.IbmDataLoader(';') AS (timestamp,nodeType1:chararray,nodeId1:chararray,rel:chararray,nodeType2:chararray,nodeId2:chararray,json:map[]);
 
 
 -- ?also filter for set of rel here?
@@ -74,10 +75,6 @@ in = FOREACH in GENERATE '$maxtime' as maxtime:long,'in-degree' as label:chararr
 out = GROUP uniReplies BY (community,replier);
 out = FOREACH out GENERATE '$maxtime' as maxtime:long,'out-degree' as label:chararray,FLATTEN(group) as (community,replier) , COUNT(uniReplies) as value;
 
---STORE in into './results/in$maxtime';
---STORE out into './results/out$maxtime';
-
-
 --------------
 -- reciprocity
 --------------
@@ -103,7 +100,7 @@ repro = FOREACH repro GENERATE '$maxtime' as maxtime:long,'reprocity' as label:c
 wasReplied= DISTINCT (FOREACH comReplies GENERATE community,creator,thread);
 
 -- group by comm. and user to count number of replied thread
-numReplied = GROUP wasReplied by (community,creator);
+numReplied = GROUP wasReplied BY (community,creator);
 numReplied = FOREACH numReplied GENERATE FLATTEN(group) as (community,creator), COUNT(wasReplied) as sumReplied;
 
 -- get number of created thread per comm. and user
@@ -118,10 +115,19 @@ popu = FOREACH popu GENERATE '$maxtime' as maxtime:long,'popularity' as label:ch
 --STORE in into './results/out/out$maxtime';
 --STORE repro into './results/repro/repro$maxtime';
 --STORE popu into './results/popu/popu$maxtime';
-STORE in into 'hdfs:///mhuelfen/results/in/in$maxtime';
-STORE in into 'hdfs:///mhuelfen/results/out/out$maxtime';
-STORE repro into 'hdfs:///mhuelfen/results/repro/repro$maxtime';
-STORE popu into 'hdfs:///mhuelfen/results/popu/popu$maxtime';
+
+
+explain in;
+
+---- cluster del old save results
+--rmr  'hdfs:///mhuelfen/results/in/in$maxtime'
+--rmr 'hdfs:///mhuelfen/results/out/out$maxtime'
+--rmr 'hdfs:///mhuelfen/results/repro/repro$maxtime'
+--rmr 'hdfs:///mhuelfen/results/popu/popu$maxtime'
+--STORE in into 'hdfs:///mhuelfen/results/in/in$maxtime';
+--STORE in into 'hdfs:///mhuelfen/results/out/out$maxtime';
+--STORE repro into 'hdfs:///mhuelfen/results/repro/repro$maxtime';
+--STORE popu into 'hdfs:///mhuelfen/results/popu/popu$maxtime';
 
 --------------
 --combine results before storing
@@ -130,5 +136,4 @@ STORE popu into 'hdfs:///mhuelfen/results/popu/popu$maxtime';
 describe in;
 describe out;
 describe popu;
---dump popu;
 describe repro;
