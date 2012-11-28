@@ -159,3 +159,4 @@ if __name__ == "__main__":
     result_folder = args[1]    
 
     calc_gini_from_dist_files(source_folder, result_folder)
+    

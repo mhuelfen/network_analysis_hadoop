@@ -36,110 +36,79 @@ def norm_entropy(degrees):
     return entropy
 
 
-# def store_results(week, results, path, metric_name, nodetype):
-#    with open(path, 'ab') as csvfile:
-#        result_writer = csv.writer(csvfile, delimiter='\t')
-#        print results
-#        for community, value in results:
-#            result_writer.writerow([week, metric_name, community, nodetype, value])
-        
-
 def calc_entr_from_degree_files(folder, result_folder):
     '''
     Calculate the normalized entropy for all files with degrees in a folder 
     param folder:
     '''
-    result_path = result_folder + "/norm_entropy.csv"
-    # remove old result file
-    try:
-        os.remove(result_path)
-    except:
-        pass
     
-    # find files recursively
-    matches = []
-    # for root, dirnames, filenames in os.walk('../results/degrees'):
+    # remove old result file
+    result_path = result_folder + "/norm_entropy.csv"
+    open(result_path, 'wb').close()
+    
+    # find result files recursively
+    degree_files = []
     for root, dirnames, filenames in os.walk(folder):
         for filename in fnmatch.filter(filenames, 'part*'):
-            matches.append(os.path.join(root, filename))
-    week_files = {}
-    
-    for match in matches:
-        directory = '/'.join(match.split('/')[:-1])
-        part_file = match.split('/')[-1]
-        if directory in week_files:
-            week_files[directory].append(part_file)
-        else:
-            week_files[directory] = [part_file, ]
-     
-    degree_values = []
-    # read file to get degree distribution for a week    
-    
-    for directory in week_files.keys():
-        degrees = []
-        
-        # collect data of all part file for the same week
-        for part in week_files[directory]:
-            degree_file = csv.reader(open(directory + '/' + part), delimiter='\t')
-            for line in degree_file:
-                # list of community and degree
-                degrees.append([line[3], int(line[2])])
-            
-        # parse directory name for nodetype and week
-        nodetype = directory.split('-')[1] + '-' + directory.split('-')[2]
-        week = directory.split('-')[-1]
-        # add if degree_dist non empty
-        if degrees != []:
-            degree_values.append([degrees, week, nodetype])
-        else:
-            print 'empty', week, nodetype
-    
+            degree_files.append(os.path.join(root, filename))
+    # save all results for later sorting before saving
     all_results = []
-    for degrees, week, nodetype in degree_values:
-        results = calc_entropy_from_degree_file(degrees)
-        # create result list to do sorting
-        all_results.extend([(week, 'norm_entropy', community, nodetype, value) for community, value in results])
+
+    # calc norm entropy for all files
+    for degree_file in degree_files:
+        # parse file path name for nodetype and week
+        nodetype = degree_file.split('-')[1] + '-' + degree_file.split('-')[2]
+        week = degree_file.split('/')[-2].split('-')[-1]
+        print degree_files.index(degree_file),nodetype, week 
+
+        results = calc_entropy_from_degree_file(degree_file)
         
+        all_results.extend([(week, 'norm_entropy', community, nodetype, value) for community, value in results])
+
+    
     # sort results by week
     all_results = sorted(all_results, key=operator.itemgetter(3, 0))
     # write results to tsv file    
-    with open(result_path, 'wb') as csvfile:
+    with open(result_path, 'ab') as csvfile:
         result_writer = csv.writer(csvfile, delimiter='\t')
         for result in all_results:
             result_writer.writerow(result)
+        
     
-#        for community, value in results:
-#            result_writer.writerow([week, metric_name, community, nodetype, value])
-    
-    
-def calc_entropy_from_degree_file(degreedist):
+def calc_entropy_from_degree_file(degree_file):
     '''
     Calculate the gini coefficients for all distributions in a file 
-    @param degreedist: list representing the degree distribution items [community,degree count]
+    @param degrees: list representing the degrees in the graph [community,degree]
     @type: C{List of List[str,int]}
     '''
-    # degree_dist_file = csv.reader(open(path), delimiter='\t')
+    degree_file_reader = csv.reader(open(degree_file), delimiter='\t')
     
     # values of the degree dist
     values = []
-        
+    # results for all communities
     entropy_results = []
-        
-    # use first entry
-    last_comm = degreedist[0][0]
-    values.append(degreedist[0][1])
-    for community, degreecount in degreedist[1:]:
-            if community != last_comm:
-                # new community found 
-                # calc gini
-                entropy_results.append((last_comm, norm_entropy(values)))
-                # reset values
-                last_comm = community
-                values = []
+    # read first line
+    line = degree_file_reader.next()
+    last_comm = line[3]
+    values.append( int(line[2]))
     
-            # collect values of the degree dist for this community
-            values.append(degreecount)
-            
+    # parse line of degree file 
+    for line in degree_file_reader:
+
+        # list of community and degree
+        community =line[3]
+        degree =  int(line[2])
+
+        # check if new community was found 
+        if community != last_comm:
+            # calc entropy
+            entropy_results.append((last_comm, norm_entropy(values)))
+            # reset values
+            last_comm = community
+            values = []
+    
+        # collect values of the degree dist for this community
+        values.append(degree)
     
     # calc entropy with norm_entropy for last community
     entropy_results.append((last_comm, norm_entropy(values)))

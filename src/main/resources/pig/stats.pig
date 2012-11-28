@@ -6,10 +6,8 @@ REGISTER ./src/main/resources/udf/ibmloader.jar;
 -- entity : User_entity file
 -- maxtime :  maximum timestamp of log entries used for the calculation of the statistics
 
-
 -- load data
 user_entity = LOAD '$entity' USING eu.robust.wp2.networkanalysis.IbmDataLoader(';') AS (timestamp,nodeType1:chararray,nodeId1:chararray,rel:chararray,nodeType2:chararray,nodeId2:chararray,json:map[]);
-
 
 -- ?also filter for set of rel here?
 -- filter by timestamp and check for null Ids
@@ -53,44 +51,40 @@ comReplies = JOIN createReplies BY thread, coms BY thread;
 comReplies = foreach comReplies generate $0..$4 as (timeCreate,timeReply,creator,replier,thread),coms::community as community;
 
 
--- join creations with community
+-- join creations with community to get community for every thread
 comCreates = JOIN creations BY thread, coms BY thread;
 comCreates = foreach comCreates generate coms::community as community, creations::creator as creator,coms::thread as thread;
 
--------
+------------------------------
 -- calculate in and out degree
--------
+------------------------------
 
 -- make replies unique
 uniReplies = DISTINCT (FOREACH comReplies GENERATE community,creator,replier);
 
--- calculate in degree by grouping by community and creator and count the groups
-in = GROUP uniReplies BY (community,creator);
-in = FOREACH in GENERATE '$maxtime' as maxtime:long,'in-degree' as label:chararray,FLATTEN(group) as (community,creator) , COUNT(uniReplies) as value;
-
---dump in;
---describe in;
-
 -- calculate in degree by grouping by community and replier and count the groups
-out = GROUP uniReplies BY (community,replier);
-out = FOREACH out GENERATE '$maxtime' as maxtime:long,'out-degree' as label:chararray,FLATTEN(group) as (community,replier) , COUNT(uniReplies) as value;
+in = GROUP uniReplies BY (community,replier);
+in = FOREACH out GENERATE '$maxtime' as maxtime:long,'in-degree' as label:chararray,FLATTEN(group) as (community,replier) , COUNT(uniReplies) as value;
+
+-- calculate in degree by grouping by community and creator and count the groups
+out = GROUP uniReplies BY (community,creator);
+out = FOREACH out GENERATE '$maxtime' as maxtime:long,'out-degree' as label:chararray,FLATTEN(group) as (community,creator) , COUNT(uniReplies) as value;
 
 --------------
 -- reciprocity
 --------------
--- caculate times between creation and reply
+-- calculate times between creation and reply
 replyTimes = foreach comReplies generate timeReply - timeCreate as deltaTime, creator, community;
 -- group by creator and community
 repro = GROUP replyTimes BY (community,creator);
 repro = FOREACH repro GENERATE FLATTEN(group) as (community,creator) , SUM(replyTimes.deltaTime) / COUNT(replyTimes) as reprocity;
--- join with creations to set infinity value for creators never replied to
+---- join with creations to set infinity value for creators never replied to
 repro = JOIN comCreates by (community,creator) LEFT OUTER, repro by (community,creator); 
---describe repro;
+
+-- bring into right dataformat
 repro = FOREACH repro GENERATE '$maxtime' as maxtime:long,'reprocity' as label:chararray,
 					 $0..$1 as (community:chararray, creator:chararray),
 					 (repro::reprocity is null ? -1 : repro::reprocity) as value:double;
-
---STORE repro into './results/repro$maxtime';
 
 --------------
 -- popularity
@@ -111,13 +105,11 @@ numCreated = FOREACH numCreated GENERATE FLATTEN(group) as (community,creator),C
 popu = JOIN numReplied by (community,creator) RIGHT OUTER, numCreated by (community,creator);
 popu = FOREACH popu GENERATE '$maxtime' as maxtime:long,'popularity' as label:chararray,$3..$4 as (community,creator), (numReplied::sumReplied is null ? 0 : numReplied::sumReplied /  numCreated::sumCreated) as value;
 
+----store localy
 --STORE in into './results/in/in$maxtime';
---STORE in into './results/out/out$maxtime';
---STORE repro into './results/repro/repro$maxtime';
+--STORE out into './results/out/out$maxtime';
+--STORE repro into './results/repro/test_repro$maxtime';
 --STORE popu into './results/popu/popu$maxtime';
-
-
-explain in;
 
 ---- cluster del old save results
 --rmr  'hdfs:///mhuelfen/results/in/in$maxtime'
@@ -125,15 +117,11 @@ explain in;
 --rmr 'hdfs:///mhuelfen/results/repro/repro$maxtime'
 --rmr 'hdfs:///mhuelfen/results/popu/popu$maxtime'
 --STORE in into 'hdfs:///mhuelfen/results/in/in$maxtime';
---STORE in into 'hdfs:///mhuelfen/results/out/out$maxtime';
+--STORE out into 'hdfs:///mhuelfen/results/out/out$maxtime';
 --STORE repro into 'hdfs:///mhuelfen/results/repro/repro$maxtime';
 --STORE popu into 'hdfs:///mhuelfen/results/popu/popu$maxtime';
 
---------------
---combine results before storing
---------------
-
-describe in;
-describe out;
-describe popu;
-describe repro;
+--describe in;
+--describe out;
+--describe popu;
+--describe repro;
